@@ -23,7 +23,7 @@ const NavBar = () => {
           <NavLink to="/articles" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
             Articles
           </NavLink>
-          <NavLink to="/signin" className={({ isActive }) => `nav-link nav-cta ${isActive ? 'active' : ''}`}>
+          <NavLink to="/auth/signin" className={({ isActive }) => `nav-link nav-cta ${isActive ? 'active' : ''}`}>
             Sign In
           </NavLink>
         </div>

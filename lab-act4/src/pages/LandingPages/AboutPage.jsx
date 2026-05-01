@@ -1,6 +1,6 @@
 const favoritePokemonImage =
   'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/658.png'
-import trainerCharacterImage from '../assets/Pokemon Trainer.png'
+import trainerCharacterImage from '../../assets/Pokemon Trainer.png'
 
 function AboutPage() {
   return (
