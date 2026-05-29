@@ -1,8 +1,48 @@
+import { useMemo } from 'react'
 import Button from '../../components/Button'
 import ArticleList from '../../components/ArticleList'
-import articles from '../../data/article-content'
+import seedArticles from '../../data/article-content'
+
+const STORAGE_KEY = 'salvador.articles'
+
+const normalizeStoredArticles = (items) =>
+  items.map((item, index) => ({
+    id: item.id ?? index + 1,
+    name: item.name,
+    title: item.title,
+    image: item.image,
+    moreInfoLink: item.moreInfoLink,
+    content: Array.isArray(item.content) ? item.content : [],
+    status: item.status ?? 'active'
+  }))
 
 const ArticleListPage = () => {
+  const articles = useMemo(() => {
+    if (typeof window === 'undefined') {
+      return normalizeStoredArticles(seedArticles)
+    }
+
+    try {
+      const raw = window.localStorage.getItem(STORAGE_KEY)
+      if (!raw) {
+        return normalizeStoredArticles(seedArticles)
+      }
+
+      const parsed = JSON.parse(raw)
+      return Array.isArray(parsed) && parsed.length
+        ? normalizeStoredArticles(parsed)
+        : normalizeStoredArticles(seedArticles)
+    } catch (error) {
+      console.warn('Failed to read stored articles:', error)
+      return normalizeStoredArticles(seedArticles)
+    }
+  }, [])
+
+  const activeArticles = useMemo(
+    () => articles.filter((article) => article.status === 'active'),
+    [articles]
+  )
+
   return (
     <div>
       <section className="section hero-section">
@@ -18,7 +58,7 @@ const ArticleListPage = () => {
       <section className="section">
         <p className="eyebrow">Featured Articles</p>
         <h3 className="section-subtitle"></h3>
-        <ArticleList articles={articles} />
+        <ArticleList articles={activeArticles} />
       </section>
     </div>
   )

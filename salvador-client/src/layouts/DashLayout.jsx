@@ -22,6 +22,7 @@ import ListItemText from '@mui/material/ListItemText'
 import DashboardIcon from '@mui/icons-material/Dashboard'
 import PeopleIcon from '@mui/icons-material/People'
 import AssessmentIcon from '@mui/icons-material/Assessment'
+import ArticleIcon from '@mui/icons-material/Article'
 import Button from '@mui/material/Button'
 
 const drawerWidth = 240
@@ -38,6 +39,12 @@ const dashboardNavItems = [
     title: 'Reports',
     to: '/dashboard/reports',
     icon: AssessmentIcon
+  },
+  {
+    label: 'Articles',
+    title: 'Articles',
+    to: '/dashboard/articles',
+    icon: ArticleIcon
   },
   {
     label: 'Users',
@@ -165,11 +172,19 @@ const DashLayout = () => {
   const [open, setOpen] = useState(false)
   const location = useLocation()
   const navigate = useNavigate()
+  const userType = localStorage.getItem('type')
+
+  const filteredNavItems = useMemo(() => {
+    if (userType === 'editor') {
+      return dashboardNavItems.filter((item) => item.to !== '/dashboard/users')
+    }
+    return dashboardNavItems
+  }, [userType])
 
   const pageTitle = useMemo(() => {
-    const match = dashboardNavItems.find((item) => location.pathname === item.to)
+    const match = filteredNavItems.find((item) => location.pathname === item.to)
     return match?.title ?? 'Welcome'
-  }, [location.pathname])
+  }, [filteredNavItems, location.pathname])
 
   const handleDrawerOpen = () => {
     setOpen(true)
@@ -223,7 +238,7 @@ const DashLayout = () => {
         </DrawerHeader>
         <Divider />
         <List>
-          {dashboardNavItems.map((item) => (
+          {filteredNavItems.map((item) => (
             <ListItem key={item.to} disablePadding sx={{ display: 'block' }}>
               <ListItemButton
                 component={Link}

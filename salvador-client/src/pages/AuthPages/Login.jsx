@@ -5,56 +5,31 @@ import { loginUser } from '../../services/UserService'
 const inputClasses =
   'mt-2 w-full rounded-xl border border-[var(--line)] bg-[rgba(13,17,23,0.35)] px-4 py-3 text-sm text-[var(--ink)] outline-none transition placeholder:text-[var(--muted)] focus:border-[rgba(88,166,255,0.55)] focus:bg-[rgba(13,17,23,0.55)]'
 
-const SignInPage = () => {
+function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
-  const [fieldErrors, setFieldErrors] = useState({})
   const navigate = useNavigate()
 
-  const validate = () => {
-    const nextErrors = {}
-    const trimmedEmail = email.trim().toLowerCase()
-
-    if (!trimmedEmail) {
-      nextErrors.email = 'Email is required.'
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
-      nextErrors.email = 'Enter a valid email address.'
-    }
-
-    if (!password.trim()) {
-      nextErrors.password = 'Password is required.'
-    }
-
-    return nextErrors
-  }
-
-  const handleLogin = async (event) => {
-    event.preventDefault()
-    const nextErrors = validate()
-    setFieldErrors(nextErrors)
-    setError('')
-
-    if (Object.keys(nextErrors).length) {
-      return
-    }
-
+  const handleLogin = async (e) => {
+    e.preventDefault()
     try {
       const { data } = await loginUser({ email, password })
+      console.log('Login successful', data)
       localStorage.setItem('token', data.token)
       localStorage.setItem('firstName', data.firstName)
-      localStorage.setItem('type', data.type)
+      localStorage.setItem('type', data.type) // user type for dynamic rendering
       navigate('/dashboard', { state: { firstName: data.firstName, type: data.type } })
     } catch (err) {
-      const message = err.response?.data?.message || 'Login failed. Please try again.'
-      setError(message)
+      console.error('Login failed:', err.response?.data?.message || err.message)
+      setError(err.response?.data?.message || 'Login failed. Please try again.')
     }
   }
+
   return (
     <>
       <p className="font-semibold tracking-[0.2em] text-[var(--muted)]">WELCOME BACK</p>
-      <h1 className="mt-2 text-4xl font-extrabold tracking-tight text-[var(--ink)]">Welcome back</h1>
+      <h1 className="mt-2 text-4xl font-extrabold tracking-tight text-[var(--ink)]">Login</h1>
       <p className="mt-2 text-sm leading-6 text-[var(--muted)]">Please enter your details</p>
 
       {error ? <p className="mt-4 text-sm font-semibold text-red-300">{error}</p> : null}
@@ -62,37 +37,28 @@ const SignInPage = () => {
       <form className="mt-8 space-y-5" onSubmit={handleLogin}>
         <div>
           <input
-            id="signin-email"
+            id="login-email"
             type="email"
             placeholder="Email address"
             autoComplete="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
-            className={`${inputClasses} ${fieldErrors.email ? 'border-red-400' : ''}`.trim()}
+            className={inputClasses}
             required
           />
-          {fieldErrors.email ? <p className="mt-2 text-xs text-red-300">{fieldErrors.email}</p> : null}
         </div>
 
         <div>
           <input
-            id="signin-password"
-            type={showPassword ? 'text' : 'password'}
+            id="login-password"
+            type="password"
             placeholder="Password"
             autoComplete="current-password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
-            className={`${inputClasses} ${fieldErrors.password ? 'border-red-400' : ''}`.trim()}
+            className={inputClasses}
             required
           />
-          <button
-            type="button"
-            className="mt-2 text-xs font-semibold text-[var(--accent-purple)] transition hover:opacity-90"
-            onClick={() => setShowPassword((prev) => !prev)}
-          >
-            {showPassword ? 'Hide password' : 'Show password'}
-          </button>
-          {fieldErrors.password ? <p className="mt-2 text-xs text-red-300">{fieldErrors.password}</p> : null}
         </div>
 
         <div className="flex items-center justify-between gap-4 text-sm">
@@ -116,21 +82,14 @@ const SignInPage = () => {
           type="submit"
           className="w-full rounded-xl bg-[var(--accent-purple)] px-4 py-3 text-sm font-semibold text-[#0d1117] transition hover:opacity-95"
         >
-          Sign in
-        </button>
-
-        <button
-          type="button"
-          className="mt-2 w-full rounded-xl border border-[var(--line)] bg-[rgba(13,17,23,0.35)] px-4 py-3 text-sm font-semibold text-[var(--ink)] transition hover:bg-[rgba(13,17,23,0.55)]"
-        >
-          Sign in with Google
+          Login
         </button>
       </form>
 
       <div className="mt-8 border-t border-[rgba(88,166,255,0.18)] pt-6 text-center text-sm text-[var(--muted)]">
-        Don't have an account?{' '}
+        If you do not have an account,{' '}
         <Link to="/auth/signup" className="font-semibold text-[var(--accent-purple)] transition hover:opacity-90">
-          Sign up
+          register here.
         </Link>
       </div>
 
@@ -141,6 +100,6 @@ const SignInPage = () => {
       </div>
     </>
   )
-};
+}
 
-export default SignInPage
+export default LoginPage

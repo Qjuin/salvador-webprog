@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   Alert,
   Box,
@@ -23,7 +24,7 @@ import { useTheme } from '@mui/material/styles'
 import Visibility from '@mui/icons-material/Visibility'
 import VisibilityOff from '@mui/icons-material/VisibilityOff'
 import { DataGrid } from '@mui/x-data-grid'
-import usersSeed from '../../data/users.json?raw'
+import { createUser, deleteUser, fetchUsers, updateUser } from '../../services/UserService'
 
 const roles = ['admin', 'editor', 'viewer']
 const genders = ['male', 'female', 'other']
@@ -44,38 +45,11 @@ const blankForm = {
 
 const labelize = (value) => (value ? `${value.charAt(0).toUpperCase()}${value.slice(1)}` : '')
 
-const loadUsers = () => {
-  try {
-    return {
-      users: JSON.parse(usersSeed).map((user, index) => ({
-        id: Number(user.id) || index + 1,
-        firstName: String(user.firstName ?? '').trim(),
-        lastName: String(user.lastName ?? '').trim(),
-        age: String(user.age ?? '').trim(),
-        gender: genders.includes(String(user.gender ?? '').trim().toLowerCase())
-          ? String(user.gender ?? '').trim().toLowerCase()
-          : '',
-        contactNumber: String(user.contactNumber ?? '').trim(),
-        email: String(user.email ?? '').trim().toLowerCase(),
-        role: roles.includes(String(user.role ?? '').trim().toLowerCase())
-          ? String(user.role ?? '').trim().toLowerCase()
-          : 'editor',
-        username: String(user.username ?? '').trim().toLowerCase(),
-        password: String(user.password ?? ''),
-        address: String(user.address ?? '').trim(),
-        isActive: typeof user.isActive === 'boolean' ? user.isActive : true
-      })),
-      error: ''
-    }
-  } catch {
-    return {
-      users: [],
-      error: 'Unable to read users from src/data/users.json.'
-    }
-  }
-}
-
-const seed = loadUsers()
+const normalizeUser = (user) => ({
+  ...user,
+  id: user._id ?? user.id,
+  role: String(user.role ?? user.type ?? '').trim().toLowerCase()
+})
 
 const paperSx = {
   backgroundColor: 'var(--card)',
@@ -178,7 +152,10 @@ const dataGridSx = {
 const UsersPage = () => {
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
-  const [users, setUsers] = useState(seed.users)
+  const navigate = useNavigate()
+  const [users, setUsers] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [apiError, setApiError] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
   const [roleFilter, setRoleFilter] = useState('')
   const [genderFilter, setGenderFilter] = useState('')
@@ -218,8 +195,32 @@ const UsersPage = () => {
     setErrors({})
   }
 
+  const loadUsers = async () => {
+    setLoading(true)
+    setApiError('')
+
+    try {
+      const { data } = await fetchUsers()
+      const list = Array.isArray(data?.users) ? data.users : Array.isArray(data) ? data : []
+      setUsers(list.map(normalizeUser))
+    } catch (error) {
+      setApiError(error.response?.data?.message || 'Unable to load users from the server.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    const userType = localStorage.getItem('type')
+    if (userType === 'editor') {
+      navigate('/dashboard')
+      return
+    }
+    loadUsers()
+  }, [navigate])
+
   const openModal = (user) => {
-    setModal({ open: true, id: user?.id ?? null })
+    setModal({ open: true, id: user?.id ?? user?._id ?? null })
     setForm(user ? { ...blankForm, ...user } : { ...blankForm })
     setErrors({})
   }
@@ -301,7 +302,7 @@ const UsersPage = () => {
     return nextErrors
   }
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault()
     const nextErrors = validate()
 
@@ -317,30 +318,43 @@ const UsersPage = () => {
       gender: form.gender.trim().toLowerCase(),
       contactNumber: form.contactNumber.trim(),
       email: form.email.trim().toLowerCase(),
-      role: form.role.trim().toLowerCase(),
+      type: form.role.trim().toLowerCase(),
       username: form.username.trim().toLowerCase(),
       password: form.password,
       address: form.address.trim(),
       isActive: form.isActive
     }
 
-    setUsers((prev) =>
-      modal.id
-        ? prev.map((user) => (user.id === modal.id ? { ...user, ...nextUser } : user))
-        : [
-            ...prev,
-            {
-              id: prev.reduce((max, user) => Math.max(max, Number(user.id) || 0), 0) + 1,
-              ...nextUser
-            }
-          ]
-    )
+    try {
+      if (modal.id) {
+        await updateUser(modal.id, nextUser)
+      } else {
+        await createUser(nextUser)
+      }
 
-    closeModal()
+      await loadUsers()
+      closeModal()
+    } catch (error) {
+      setApiError(error.response?.data?.message || 'Unable to save the user right now.')
+    }
   }
 
-  const toggleStatus = (id) => {
-    setUsers((prev) => prev.map((user) => (user.id === id ? { ...user, isActive: !user.isActive } : user)))
+  const toggleStatus = async (id, isActive) => {
+    try {
+      await updateUser(id, { isActive: !isActive })
+      await loadUsers()
+    } catch (error) {
+      setApiError(error.response?.data?.message || 'Unable to update user status.')
+    }
+  }
+
+  const handleDelete = async (id) => {
+    try {
+      await deleteUser(id)
+      await loadUsers()
+    } catch (error) {
+      setApiError(error.response?.data?.message || 'Unable to delete user.')
+    }
   }
 
   const fieldProps = (name, label, extra = {}) => ({
@@ -411,11 +425,14 @@ const UsersPage = () => {
           <Button size="small" variant="outlined" onClick={() => openModal(row)}>
             Edit
           </Button>
+          <Button size="small" variant="outlined" color="error" onClick={() => handleDelete(row.id)}>
+            Delete
+          </Button>
           <Button
             size="small"
             variant="contained"
             color={row.isActive ? 'warning' : 'success'}
-            onClick={() => toggleStatus(row.id)}
+            onClick={() => toggleStatus(row.id, row.isActive)}
           >
             {row.isActive ? 'Disable' : 'Activate'}
           </Button>
@@ -502,14 +519,16 @@ const UsersPage = () => {
         </Stack>
       </Paper>
 
-      {seed.error ? (
+      {apiError ? (
         <Alert severity="error" sx={{ mb: 2 }}>
-          {seed.error}
+          {apiError}
         </Alert>
       ) : null}
 
       <Paper sx={{ ...paperSx, p: { xs: 1.5, sm: 2 }, minWidth: 0, overflow: 'hidden' }}>
-        {filteredUsers.length ? (
+        {loading ? (
+          <Alert severity="info">Loading users...</Alert>
+        ) : filteredUsers.length ? (
           <Box sx={{ height: { xs: 460, sm: 520 }, width: '100%', minWidth: 0 }}>
             <DataGrid
               rows={filteredUsers}

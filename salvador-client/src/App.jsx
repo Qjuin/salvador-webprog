@@ -10,11 +10,13 @@ import ArticleListPage from './pages/LandingPages/ArticleListPage'
 import AuthLayout from './layouts/AuthLayout'
 import SignInPage from './pages/AuthPages/SignInPage'
 import SignUpPage from './pages/AuthPages/SignUpPage'
+import LoginPage from './pages/AuthPages/Login.jsx'
 
 import DashLayout from './layouts/DashLayout'
 import DashboardPage from './pages/DashboardPages/DashboardPage'
 import ReportsPage from './pages/DashboardPages/ReportsPage'
 import UserPage from './pages/DashboardPages/UsersPage'
+import DashArticleListPage from './pages/DashboardPages/DashArticleListPage'
 
 import NotFoundPage from './pages/NotFoundPage'
 
@@ -57,6 +59,10 @@ const routes = [
         element: <SignInPage />
       },
       {
+        path: 'login',
+        element: <LoginPage />
+      },
+      {
         path: 'signup',
         element: <SignUpPage />
       }
@@ -75,6 +81,10 @@ const routes = [
       {
         path: 'reports',
         element: <ReportsPage />
+      },
+      {
+        path: 'articles',
+        element: <DashArticleListPage />
       },
       {
         path: 'users',
