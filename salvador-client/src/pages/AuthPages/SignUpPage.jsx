@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import constants from '../../constants'
 
-const API_BASE_URL = 'http://localhost:8000/api/users'
+const API_BASE_URL = `${constants.HOST}/users`
 
 const createUser = async (user) => {
   const response = await fetch(API_BASE_URL, {
